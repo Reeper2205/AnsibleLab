@@ -1,0 +1,25 @@
+---
+- name: Update instances and create hello_world file
+  hosts: all
+  become: yes
+  tasks:
+    - name: Update package cache and upgrade packages (Ubuntu)
+      ansible.builtin.apt:
+        update_cache: yes
+        upgrade: dist
+      when: ansible_distribution == "Ubuntu"
+
+    - name: Update package cache and upgrade packages (Amazon Linux)
+      ansible.builtin.dnf:
+        name: "*"
+        state: latest
+        update_cache: yes
+      when: ansible_distribution == "Amazon"
+
+    - name: Create hello_world file in home directory
+      ansible.builtin.file:
+        path: "/home/{{ ansible_user }}/hello_world"
+        state: touch
+        mode: '0644'
+      become: no
+---

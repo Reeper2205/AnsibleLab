@@ -1,0 +1,14 @@
+all:
+  hosts:
+    control:
+      ansible_host: localhost
+      ansible_user: ubuntu
+    test1:
+      ansible_host: <test-node-1-private-ip>
+      ansible_user: ec2-user
+    test2:
+      ansible_host: <test-node-2-private-ip>
+      ansible_user: ec2-user
+    test3:
+      ansible_host: <test-node-3-private-ip>
+      ansible_user: ec2-user
