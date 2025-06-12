@@ -185,6 +185,51 @@ resource "aws_iam_instance_profile" "ssm_instance_profile" {
   role = aws_iam_role.ssm_role.name
 }
 
+# SSM Document for installing Ansible on Ubuntu
+resource "aws_ssm_document" "install_ansible_ubuntu" {
+  name          = "InstallAnsibleUbuntu"
+  document_type = "Command"
+  content = jsonencode({
+    schemaVersion = "2.2"
+    description   = "Install Ansible on Ubuntu"
+    mainSteps = [
+      {
+        action = "aws:runShellScript"
+        name   = "installAnsible"
+        inputs = {
+          runCommand = [
+            "sudo apt update -y",
+            "sudo apt install -y software-properties-common",
+            "sudo add-apt-repository --yes --update ppa:ansible/ansible",
+            "sudo apt install -y ansible"
+          ]
+        }
+      }
+    ]
+  })
+}
+
+# SSM Document for installing Ansible on Amazon Linux
+resource "aws_ssm_document" "install_ansible_amazon" {
+  name          = "InstallAnsibleAmazonLinux"
+  document_type = "Command"
+  content = jsonencode({
+    schemaVersion = "2.2"
+    description   = "Install Ansible on Amazon Linux"
+    mainSteps = [
+      {
+        action = "aws:runShellScript"
+        name   = "installAnsible"
+        inputs = {
+          runCommand = [
+            "sudo dnf install -y ansible"
+          ]
+        }
+      }
+    ]
+  })
+}
+
 # Control Node (Ubuntu, t3.medium)
 resource "aws_instance" "control_node" {
   ami                         = data.aws_ami.ubuntu.id
@@ -197,6 +242,16 @@ resource "aws_instance" "control_node" {
   tags = {
     Name = "ansible-control-node"
   }
+}
+
+# SSM Association to install Ansible on control node
+resource "aws_ssm_association" "control_node_ansible" {
+  name        = aws_ssm_document.install_ansible_ubuntu.name
+  targets {
+    key    = "InstanceIds"
+    values = [aws_instance.control_node.id]
+  }
+  depends_on = [aws_instance.control_node]
 }
 
 # Test Machines (Amazon Linux, t3.micro)
@@ -212,6 +267,17 @@ resource "aws_instance" "test_node" {
   tags = {
     Name = "ansible-test-node-${count.index + 1}"
   }
+}
+
+# SSM Association to install Ansible on test nodes
+resource "aws_ssm_association" "test_node_ansible" {
+  count       = 3
+  name        = aws_ssm_document.install_ansible_amazon.name
+  targets {
+    key    = "InstanceIds"
+    values = [aws_instance.test_node[count.index].id]
+  }
+  depends_on = [aws_instance.test_node]
 }
 
 # Outputs
